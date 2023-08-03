@@ -128,3 +128,14 @@ if uploaded_file:
                 st.session_state.memory = ConversationBufferMemory(
                     memory_key="chat_history"
                 )
+
+            # Chain
+            # Zero Shot Agent
+            # Agent Executor
+
+            llm_chain = LLMChain(
+                llm=OpenAI(
+                    temperature=0, openai_api_key=api, model_name="gpt-3.5-turbo"
+                ),
+                prompt=prompt,
+            )
