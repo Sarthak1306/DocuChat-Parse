@@ -144,3 +144,9 @@ if uploaded_file:
             agent_chain = AgentExecutor.from_agent_and_tools(
                 agent=agent, tools=tools, verbose=True, memory=st.session_state.memory
             )
+
+            query = st.text_input("Query")
+
+            if query:
+                res = agent_chain.run(query)
+                st.write(res)
