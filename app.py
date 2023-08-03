@@ -74,10 +74,26 @@ if uploaded_file:
     doc = parse_pdf(uploaded_file)
     pages = text_to_docs(doc)
 
-    pages
+    # pages
     if pages:
         with st.expander("Show page content", expanded=False):
             page_sel = st.number_input(
                 label="Select Page", min_value=1, max_value=len(pages), step=1
             )
             pages[page_sel - 1]
+        api = st.text_input(
+            "Enter OpenAI API Key",
+            type="password",
+            placeholder="sk-",
+            help="https://platform.openai.com/account/api-keys",
+        )
+        if api:
+            embeddings = OpenAIEmbeddings(openai_api_key=api)
+            with st.spinner("It's indexing..."):
+                index = FAISS.from_documents(pages, embeddings)
+
+            qa = RetrievalQA.from_chain_type(
+                llm=OpenAI(openai_api_key=api),
+                chain_type="stuff",
+                retriever=index.as_retriever(),
+            )
