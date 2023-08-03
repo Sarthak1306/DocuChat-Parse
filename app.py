@@ -103,7 +103,7 @@ if uploaded_file:
             # Tool
             tools = [
                 Tool(
-                    name="State of Union QA System",
+                    name="QA System",
                     func=qa.run,
                     description="Useful for when you need to answer questions about the aspects asked. Input may be a partial or fully formed question.",
                 )
@@ -150,3 +150,6 @@ if uploaded_file:
             if query:
                 res = agent_chain.run(query)
                 st.write(res)
+
+            with st.expander("History/Memory"):
+                st.session_state.memory
