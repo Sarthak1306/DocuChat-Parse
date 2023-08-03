@@ -89,11 +89,42 @@ if uploaded_file:
         )
         if api:
             embeddings = OpenAIEmbeddings(openai_api_key=api)
+            # Indexing
             with st.spinner("It's indexing..."):
                 index = FAISS.from_documents(pages, embeddings)
 
+            # Questions Answer Chain from Langchain
             qa = RetrievalQA.from_chain_type(
                 llm=OpenAI(openai_api_key=api),
                 chain_type="stuff",
                 retriever=index.as_retriever(),
             )
+
+            # Tool
+            tools = [
+                Tool(
+                    name="State of Union QA System",
+                    func=qa.run,
+                    description="Useful for when you need to answer questions about the aspects asked. Input may be a partial or fully formed question.",
+                )
+            ]
+
+            prefix = """Have a conversation with a human, answering the following questions as best you can based on the context and memory available.
+                        You have access to a single tool:"""
+            suffix = """Begin!
+            
+            {chat_history}
+            Question: {input}
+            {agent_scratchpad}"""
+
+            prompt = ZeroShotAgent.create_prompt(
+                tools,
+                prefix=prefix,
+                suffix=suffix,
+                input_variables=["input", "chat_history", "agent_scratchpad"],
+            )
+
+            if "memory" not in st.session_state:
+                st.session_state.memory = ConversationBufferMemory(
+                    memory_key="chat_history"
+                )
