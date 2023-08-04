@@ -161,9 +161,19 @@ def main():
                 query = st.text_input("Query")
 
                 if query:
-                    res = agent_chain.run(query)
+                    # res = agent_chain.run(query)
+                    # st.write(res)
+                    # st.write(res["source_documents"])
+                    try:
+                        res = agent_chain.run(query)
+                    except ValueError as e:
+                        res = str(e)
+                        if not res.startswith("Could not parse LLM output: `"):
+                            raise e
+                            res = res.removeprefix(
+                                "Could not parse LLM output: `"
+                            ).removesuffix("`")
                     st.write(res)
-                    # st.write()
 
                 with st.expander("History/Memory"):
                     st.session_state.memory
