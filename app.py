@@ -69,87 +69,105 @@ def text_to_docs(text: str) -> List[Document]:
     return doc_chunks
 
 
-uploaded_file = st.file_uploader(":blue[Upload]", type=["pdf"])
-if uploaded_file:
-    doc = parse_pdf(uploaded_file)
-    pages = text_to_docs(doc)
+def main():
+    uploaded_file = st.file_uploader(":blue[Upload]", type=["pdf"])
+    if uploaded_file:
+        doc = parse_pdf(uploaded_file)
+        pages = text_to_docs(doc)
 
-    # pages
-    if pages:
-        with st.expander("Show page content", expanded=False):
-            page_sel = st.number_input(
-                label="Select Page", min_value=1, max_value=len(pages), step=1
-            )
-            pages[page_sel - 1]
-        api = st.text_input(
-            "Enter OpenAI API Key",
-            type="password",
-            placeholder="sk-",
-            help="https://platform.openai.com/account/api-keys",
-        )
-        if api:
-            embeddings = OpenAIEmbeddings(openai_api_key=api)
-            # Indexing
-            with st.spinner("It's indexing..."):
-                index = FAISS.from_documents(pages, embeddings)
-
-            # Questions Answer Chain from Langchain
-            qa = RetrievalQA.from_chain_type(
-                llm=OpenAI(openai_api_key=api),
-                chain_type="stuff",
-                retriever=index.as_retriever(),
-            )
-
-            # Tool
-            tools = [
-                Tool(
-                    name="QA System",
-                    func=qa.run,
-                    description="Useful for when you need to answer questions about the aspects asked. Input may be a partial or fully formed question.",
+        # pages
+        if pages:
+            with st.expander("Show page content", expanded=False):
+                page_sel = st.number_input(
+                    label="Select Page", min_value=1, max_value=len(pages), step=1
                 )
-            ]
-
-            prefix = """Have a conversation with a human, answering the following questions as best you can based on the context and memory available.
-                        You have access to a single tool:"""
-            suffix = """Begin!
-            
-            {chat_history}
-            Question: {input}
-            {agent_scratchpad}"""
-
-            prompt = ZeroShotAgent.create_prompt(
-                tools,
-                prefix=prefix,
-                suffix=suffix,
-                input_variables=["input", "chat_history", "agent_scratchpad"],
+                pages[page_sel - 1]
+            api = st.text_input(
+                "Enter OpenAI API Key",
+                type="password",
+                placeholder="sk-",
+                help="https://platform.openai.com/account/api-keys",
             )
+            if api:
+                embeddings = OpenAIEmbeddings(openai_api_key=api)
+                # Indexing
+                with st.spinner("It's indexing..."):
+                    index = FAISS.from_documents(pages, embeddings)
 
-            if "memory" not in st.session_state:
-                st.session_state.memory = ConversationBufferMemory(
-                    memory_key="chat_history"
+                # Questions Answer Chain from Langchain
+                qa = RetrievalQA.from_chain_type(
+                    llm=OpenAI(openai_api_key=api),
+                    chain_type="stuff",
+                    retriever=index.as_retriever(),
+                    return_source_documents=True,
+                    verbose=True,
+                    input_key="Question",
                 )
 
-            # Chain
-            # Zero Shot Agent
-            # Agent Executor
+                # Tool
+                tools = [
+                    Tool(
+                        name="QA System",
+                        func=lambda query: qa({"Question": query}),
+                        description="Useful for when you need to answer questions about the aspects asked. Input may be a partial or fully formed question.",
+                    )
+                ]
 
-            llm_chain = LLMChain(
-                llm=OpenAI(
-                    temperature=0, openai_api_key=api, model_name="gpt-3.5-turbo"
-                ),
-                prompt=prompt,
-            )
+                prefix = """Have a conversation with a human, answering the following questions as best you can based on the context and memory available.
+                            You have access to a single tool:"""
+                suffix = """Begin!
+                
+                {chat_history}
+                Question: {input}
+                {agent_scratchpad}"""
 
-            agent = ZeroShotAgent(llm_chain=llm_chain, tools=tools, verbose=True)
-            agent_chain = AgentExecutor.from_agent_and_tools(
-                agent=agent, tools=tools, verbose=True, memory=st.session_state.memory
-            )
+                prompt = ZeroShotAgent.create_prompt(
+                    tools,
+                    prefix=prefix,
+                    suffix=suffix,
+                    input_variables=["input", "chat_history", "agent_scratchpad"],
+                )
 
-            query = st.text_input("Query")
+                if "memory" not in st.session_state:
+                    st.session_state.memory = ConversationBufferMemory(
+                        memory_key="chat_history"
+                    )
 
-            if query:
-                res = agent_chain.run(query)
-                st.write(res)
+                # Chain
+                # Zero Shot Agent
+                # Agent Executor
 
-            with st.expander("History/Memory"):
-                st.session_state.memory
+                llm_chain = LLMChain(
+                    llm=OpenAI(
+                        temperature=0, openai_api_key=api, model_name="gpt-3.5-turbo"
+                    ),
+                    prompt=prompt,
+                )
+
+                agent = ZeroShotAgent(
+                    llm_chain=llm_chain,
+                    tools=tools,
+                    verbose=True,
+                    return_source_documents=True,
+                    handle_parsing_errors="Check your output and make sure it conforms!",
+                )
+                agent_chain = AgentExecutor.from_agent_and_tools(
+                    agent=agent,
+                    tools=tools,
+                    verbose=True,
+                    memory=st.session_state.memory,
+                )
+
+                query = st.text_input("Query")
+
+                if query:
+                    res = agent_chain.run(query)
+                    st.write(res)
+                    # st.write()
+
+                with st.expander("History/Memory"):
+                    st.session_state.memory
+
+
+if __name__ == "__main__":
+    main()
