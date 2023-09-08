@@ -69,13 +69,33 @@ def text_to_docs(text: str) -> List[Document]:
     return doc_chunks
 
 
+def get_index(pages):
+    index = 0
+    content = []
+    for i in pages:
+        content.append(pages[index].page_content)
+        index = index + 1
+
+    for item in content:
+        if "Prose" in item:
+            st.write([item])
+
+
 def main():
     uploaded_file = st.file_uploader(":blue[Upload]", type=["pdf"])
     if uploaded_file:
         doc = parse_pdf(uploaded_file)
         pages = text_to_docs(doc)
+        get_index(pages)
 
-        # pages
+        # index = 0
+        # content = []
+        # for i in pages:
+        #     content.append(pages[index].page_content)
+        #     index = index + 1
+
+        # [item for item in content if "Prose" in item]
+
         if pages:
             with st.expander("Show page content", expanded=False):
                 page_sel = st.number_input(
@@ -103,7 +123,7 @@ def main():
                     verbose=True,
                     input_key="Question",
                 )
-
+                # lambda query: qa({"Question": query})
                 # Tool
                 tools = [
                     Tool(
@@ -116,7 +136,7 @@ def main():
                 prefix = """Have a conversation with a human, answering the following questions as best you can based on the context and memory available.
                             You have access to a single tool:"""
                 suffix = """Begin!
-                
+
                 {chat_history}
                 Question: {input}
                 {agent_scratchpad}"""
@@ -130,7 +150,7 @@ def main():
 
                 if "memory" not in st.session_state:
                     st.session_state.memory = ConversationBufferMemory(
-                        memory_key="chat_history"
+                        memory_key="chat_history", return_messages=True
                     )
 
                 # Chain
@@ -156,6 +176,7 @@ def main():
                     tools=tools,
                     verbose=True,
                     memory=st.session_state.memory,
+                    return_source_documents=True,
                 )
 
                 query = st.text_input("Query")
