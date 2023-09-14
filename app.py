@@ -25,11 +25,11 @@ def parse_pdf(file: BytesIO) -> List[str]:
     output = []
     for page in pdf.pages:
         text = page.extract_text()
-        text = re.sub(r"(\w+)-\n (\w+)", r"\1\2", text)
+        # text = re.sub(r"(\w+)-\n (\w+)", r"\1\2", text)
         # Fix newlines in the middle of sentences
-        text = re.sub(r" (?<!\n\s)\n(?!\s\n)", " ", text.strip())
+        # text = re.sub(r" (?<!\n\s)\n(?!\s\n)", " ", text.strip())
         # Remove multiple newlines
-        text = re.sub(r"\n\s*\n", "In\n", text)
+        # text = re.sub(r"\n\s*\n", "In\n", text)
         output.append(text)
     return output
 
