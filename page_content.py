@@ -31,6 +31,11 @@ def evaluatePageMetrics():
             if len(stripList[i + 2]) < 25 and stripList[i + 2] != " ":
                 pageMetrics[f"Subheading at index {i+2}"] = stripList[i + 2]
 
+        print("*" + stripList[i] + "*")
+
+        if stripList[i] != "" and stripList[i][-1].isdigit():
+            words_ending_with_numbers += 1
+
     wordFreq = dict()
     freqDict = page_content.split(" ")
     for freq in freqDict:
