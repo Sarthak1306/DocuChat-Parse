@@ -55,8 +55,6 @@ def main():
     pageMetrics["theirStopword"] = theirStopword
     pageMetrics["butStopword"] = butStopword
 
-    # print(pageMetrics)
-
     metricResult = json.dumps(pageMetrics)
     with open("metrics/pageMetrics.json", "w") as fp:
         json.dump(metricResult, fp)
